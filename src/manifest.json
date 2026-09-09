@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Element Copy 元素复制",
-  "version": "1.1",
+  "version": "1.0.0",
   "description": "拾取页面任意元素，复制富文本/纯文本，右键插件图标切换模式，Esc退出",
   "permissions": ["clipboardWrite", "storage", "contextMenus"],
   "action": {},
