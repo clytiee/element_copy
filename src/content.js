@@ -50,9 +50,11 @@ function stopPick(showExitTip = false) {
   document.removeEventListener("keydown", onEsc);
 }
 
-function startPick() {
+async function startPick() {
   isPicking = true;
-  showTip("拾取模式已开启，点击元素复制富文本(文字+图片)，Esc退出", "info");
+  const { copyMode = "rich" } = await chrome.storage.local.get("copyMode");
+  const modeText = copyMode === "rich" ? "富文本(文字+图片)" : "纯文本";
+  showTip(`拾取模式已开启【${modeText}】，点击元素复制，Esc退出`, "info");
   document.addEventListener("mousemove", onMouseMove);
   document.addEventListener("click", onClickPick, true);
   document.addEventListener("keydown", onEsc);
@@ -67,25 +69,30 @@ async function onClickPick(e) {
   e.preventDefault();
   e.stopPropagation();
   if (!isPicking) return;
+
+  const { copyMode = "rich" } = await chrome.storage.local.get("copyMode");
   const target = e.target;
   const html = target.outerHTML;
-  const plainText = target.innerText;
+  const plainText = target.innerText.trim();
 
   try {
-    // 写入富文本HTML剪贴板
-    const blobHtml = new Blob([html], { type: "text/html" });
-    const blobText = new Blob([plainText], { type: "text/plain" });
-    const itemHtml = new ClipboardItem({
-      "text/html": blobHtml,
-      "text/plain": blobText
-    });
-    await navigator.clipboard.write([itemHtml]);
-    showTip(`✅ 富文本复制成功，可粘贴到Word/Notion`, "success");
+    if (copyMode === "rich") {
+      const blobHtml = new Blob([html], { type: "text/html" });
+      const blobText = new Blob([plainText], { type: "text/plain" });
+      const itemHtml = new ClipboardItem({
+        "text/html": blobHtml,
+        "text/plain": blobText
+      });
+      await navigator.clipboard.write([itemHtml]);
+      showTip("✅ 富文本复制成功，可粘贴到 Word/Notion", "success");
+    } else {
+      await navigator.clipboard.writeText(plainText);
+      showTip(`✅ 纯文本复制成功`, "success");
+    }
   } catch (err) {
     console.error(err);
-    // 降级：只复制纯文本
     await navigator.clipboard.writeText(plainText);
-    showTip(`⚠️ 富文本复制失败，已降级复制纯文本`, "error");
+    showTip(`⚠️ 复制异常，降级复制纯文本`, "error");
   }
   stopPick(false);
 }
@@ -97,10 +104,13 @@ function onEsc(e) {
   }
 }
 
-chrome.runtime.onMessage.addListener((msg) => {
+chrome.runtime.onMessage.addListener(async (msg) => {
   if (msg.type === "TOGGLE_PICK") {
-    if (isPicking) stopPick(true);
-    else startPick();
+    if (isPicking) {
+      stopPick(true);
+    } else {
+      await startPick();
+    }
   }
 });
 
