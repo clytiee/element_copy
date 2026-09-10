@@ -8,7 +8,6 @@ function createTooltip() {
   document.body.appendChild(el);
   return el;
 }
-
 function showTip(msg, type = "info") {
   if (!tooltipEl) tooltipEl = createTooltip();
   tooltipEl.textContent = msg;
@@ -19,14 +18,12 @@ function showTip(msg, type = "info") {
     tooltipEl.style.display = "none";
   }, 1800);
 }
-
 function createHighlight() {
   const el = document.createElement("div");
   el.id = "ect-highlight";
   document.body.appendChild(el);
   return el;
 }
-
 function updateHighlight(target) {
   if (!highlightEl) highlightEl = createHighlight();
   const rect = target.getBoundingClientRect();
@@ -38,7 +35,6 @@ function updateHighlight(target) {
     display: "block"
   });
 }
-
 function stopPick(showExitTip = false) {
   isPicking = false;
   if (highlightEl) highlightEl.style.display = "none";
@@ -49,17 +45,17 @@ function stopPick(showExitTip = false) {
   document.removeEventListener("click", onClickPick, true);
   document.removeEventListener("keydown", onEsc);
 }
-
 async function startPick() {
   isPicking = true;
-  const { copyMode = "rich" } = await chrome.storage.local.get("copyMode");
+  const { copyMode = "rich", continuousCopy = false } = await chrome.storage.local.get(["copyMode","continuousCopy"]);
   const modeText = copyMode === "rich" ? "富文本(文字+图片)" : "纯文本";
-  showTip(`拾取模式已开启【${modeText}】，点击元素复制，Esc退出`, "info");
+  const contText = continuousCopy ? "【连续】" : "";
+  showTip(`拾取模式已开启${contText}【${modeText}】，点击元素复制，Esc退出`, "info");
+
   document.addEventListener("mousemove", onMouseMove);
   document.addEventListener("click", onClickPick, true);
   document.addEventListener("keydown", onEsc);
 }
-
 function onMouseMove(e) {
   if (!isPicking) return;
   updateHighlight(e.target);
@@ -69,12 +65,10 @@ async function onClickPick(e) {
   e.preventDefault();
   e.stopPropagation();
   if (!isPicking) return;
-
-  const { copyMode = "rich" } = await chrome.storage.local.get("copyMode");
+  const { copyMode = "rich", continuousCopy = false } = await chrome.storage.local.get(["copyMode","continuousCopy"]);
   const target = e.target;
   const html = target.outerHTML;
   const plainText = target.innerText.trim();
-
   try {
     if (copyMode === "rich") {
       const blobHtml = new Blob([html], { type: "text/html" });
@@ -94,7 +88,11 @@ async function onClickPick(e) {
     await navigator.clipboard.writeText(plainText);
     showTip(`⚠️ 复制异常，降级复制纯文本`, "error");
   }
-  stopPick(false);
+
+  // 核心新增：只有非连续复制才退出拾取
+  if(!continuousCopy){
+    stopPick(false);
+  }
 }
 
 function onEsc(e) {
