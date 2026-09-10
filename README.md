@@ -1,4 +1,3 @@
-```markdown
 # Element Copy 元素复制
 Chrome / Edge Manifest V3 浏览器扩展
 
@@ -27,7 +26,7 @@ Chrome / Edge Manifest V3 浏览器扩展
 4. 点击【加载已解压的扩展程序】，选中项目文件夹
 
 ## 📁 文件说明
-```markdown
+
 element-copy/
 ├─ manifest.json   # 扩展配置、权限声明
 ├─ background.js   # 后台服务、图标右键菜单逻辑
